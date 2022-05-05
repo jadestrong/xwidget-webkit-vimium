@@ -119,7 +119,6 @@ and a Lisp function to call it."
   "Inject the functions defined in NS-NAME into XWIDGET session."
   (let* ((namespace (assoc ns-name xwidget-webkit-vimium-js-scripts))
          (script (mapconcat #'cdr (cdr namespace) "\n")))
-    ;; (message "namespace %s script %s" namespace script)
     (xwidget-webkit-vimium-html-inject-script xwidget (format "--xwidget-webkit-vimium-%s" (symbol-name ns-name)) script)))
 
 
@@ -204,6 +203,32 @@ if (tag === 'A') {
 }
 ")
 
+(defun xwidget-webkit-vimium--read (tree display-fn cleanup-fn)
+  "Select a leaf from TREE using consecutive `read-key'.
+
+DISPLAY-FN should take CHAR and LEAF and signify that LEAFs
+associated with CHAR will be selected if CHAR is pressed.  This is
+commonly done by adding a CHAR overlay at LEAF position.
+
+CLEANUP-FN should take no arguments and remove the effects of
+multiple DISPLAY-FN invocations."
+  (catch 'done
+    (while tree
+      (let ((avy--leafs nil))
+        (avy-traverse tree
+                      (lambda (path leaf)
+                        (push (cons path leaf) avy--leafs)))
+        (dolist (x avy--leafs)
+          (funcall display-fn (car x) (cdr x))))
+      (let ((char (funcall avy-translate-char-function (read-key)))
+            branch)
+        (funcall cleanup-fn)
+        (if (setq branch (assoc char tree))
+            (if (eq (car (setq tree (cdr branch))) 'leaf)
+                    (throw 'done (cdr tree)))
+          (funcall avy-handler-function char))))))
+
+
 (defun xwidget-webkit-vimium--goto (xpath)
   "Goto the XPATH element."
   (xwidget-webkit-vimium-vimium-goto-candidate (xwidget-webkit-current-session) xpath))
@@ -224,24 +249,45 @@ LEAF is normally (NUM . XPATH)."
 (defun xwidget-webkit-vimium--process (candidates)
   "Process the CANDIDATES."
   (let ((res (unwind-protect
-                 (avy-read (avy-tree (append candidates nil) avy-keys) #'xwidget-webkit-vimium--overlay-fn #'xwidget-webkit-vimium--cleanup-fn))))
+                 (xwidget-webkit-vimium--read
+                  (avy-tree
+                   (append candidates nil)
+                   avy-keys)
+                  #'xwidget-webkit-vimium--overlay-fn
+                  #'xwidget-webkit-vimium--cleanup-fn))))
     (cond
      ((null res)
       (message "zero candidates"))
+     ((eq res 'exit))
+     ((eq res 'abort)
+      nil)
      (t
-      ;; (funcall avy-pre-action res)
       (setq res (cdr res))
       (funcall 'xwidget-webkit-vimium--goto
                (if (consp res)
                    (car res)
                  res))
-      res))))
+      res)))
+  ;; The `read-key' in xwidget-webkit-execute-script callback cannot catch the last key input.
+  (keyboard-quit))
 
 (defun xwidget-webkit-vimium-get-candidates ()
   "Test."
   (interactive)
   (xwidget-webkit-vimium-js-inject (xwidget-webkit-current-session) 'vimium)
   (xwidget-webkit-vimium-vimium-get-candidates (xwidget-webkit-current-session) #'xwidget-webkit-vimium--process))
+
+(defvar xwidget-webkit-vimium-mode-map (make-sparse-keymap))
+
+(define-key xwidget-webkit-vimium-mode-map "f" 'xwwv-get-candidates)
+
+;;;###autoload
+(define-minor-mode xwidget-webkit-vimium-mode
+  "Enable vimium shortcuts for xwidget-webkit."
+  :keymap xwidget-webkit-vimium-mode-map)
+
+;;;###autoload
+(add-hook 'xwidget-webkit-mode-hook 'xwidget-webkit-vimium-mode)
 
 (provide 'xwidget-webkit-vimium)
 ;;; xwidget-webkit-vimium.el ends here
