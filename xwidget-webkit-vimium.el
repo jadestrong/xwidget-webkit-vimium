@@ -358,11 +358,6 @@ LEAF is normally (NUM . XPATH)."
   "Cleanup the sign items in current page."
   (xwidget-webkit-vimium-vimium-cleanup-highlight (xwidget-webkit-current-session)))
 
-;; (defun xwidget-webkit-vimium--done ()
-;;   "Clean up."
-;;   )
-
-;; avy--done catch and clean up
 (defun xwidget-webkit-vimium--process (candidates)
   "Process the CANDIDATES."
   (let ((res (unwind-protect
@@ -371,7 +366,8 @@ LEAF is normally (NUM . XPATH)."
                    (append candidates nil)
                     xwidget-webkit-vimium-keys)
                   #'xwidget-webkit-vimium--overlay-fn
-                  #'xwidget-webkit-vimium--cleanup-fn))))
+                  #'xwidget-webkit-vimium--cleanup-fn))
+             (xwidget-webkit-vimium--cleanup-fn)))
     (cond
      ((null res)
       (message "zero candidates"))
