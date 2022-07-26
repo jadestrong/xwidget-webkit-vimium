@@ -361,13 +361,9 @@ LEAF is normally (NUM . XPATH)."
 (defun xwidget-webkit-vimium--process (candidates)
   "Process the CANDIDATES."
   (let ((res (unwind-protect
-                 (xwidget-webkit-vimium--read
-                  (xwidget-webkit-vimium--tree
-                   (append candidates nil)
-                    xwidget-webkit-vimium-keys)
+                 (xwidget-webkit-vimium--read (xwidget-webkit-vimium--tree (append candidates nil) xwidget-webkit-vimium-keys)
                   #'xwidget-webkit-vimium--overlay-fn
-                  #'xwidget-webkit-vimium--cleanup-fn))
-             (xwidget-webkit-vimium--cleanup-fn)))
+                  #'xwidget-webkit-vimium--cleanup-fn))))
     (cond
      ((null res)
       (message "zero candidates"))
