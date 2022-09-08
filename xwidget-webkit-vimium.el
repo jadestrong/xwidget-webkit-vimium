@@ -388,7 +388,7 @@ LEAF is normally (NUM . XPATH)."
 
 (defvar xwidget-webkit-vimium-mode-map (make-sparse-keymap))
 
-(define-key xwidget-webkit-vimium-mode-map "f" 'xwwv-get-candidates)
+(define-key xwidget-webkit-vimium-mode-map "f" 'xwidget-webkit-vimium-get-candidates)
 
 ;;;###autoload
 (define-minor-mode xwidget-webkit-vimium-mode
